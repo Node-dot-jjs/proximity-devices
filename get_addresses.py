@@ -6,7 +6,6 @@ import json
 import subprocess
 import requests
 
-
 ap_file = 'access_points.csv'
 client_file = 'clients.csv'
 airodump_file = 'airodump'
@@ -50,15 +49,35 @@ def process_data():
             f.write(ap_str.lstrip())
         with open(client_file, 'w', encoding='utf8') as f:
             f.write(client_str)
-
+        
+        ap_list = []
         with open(ap_file, 'r', encoding='utf8') as f:
-            reader = csv.DictReader(ap_file)
-            ap_list = list(reader)
+            reader = csv.reader(f)
+            headers = [s.strip() for s in next(reader)]
+            for row in reader:
+                record = {}
+                for i, col in enumerate(row):
+                    try:
+                        record[headers[i]] = int(row.strip())
+                    except ValueError:
+                        record[headers[i]] = row.strip()
+                        
+                 ap_list.append(record)
 
+        clients_list = []
         with open(client_file, 'r', encoding='utf8') as f:
-            reader = csv.DictReader(ap_file)
-            clients_list = list(reader)
+            reader = csv.reader(f)
+            headers = [s.strip() for s in next(reader)]
+            for row in reader:
+                record = {}
+                for i, col in enumerate(row):
+                    try:
+                        record[headers[i]] = int(row.strip())
+                    except ValueError:
+                        record[headers[i]] = row.strip()
 
+                clients_list.append(record)
+                
         print(json.dumps(ap_list))
 
     with open(data_file, 'w', encoding='utf-8') as f:
