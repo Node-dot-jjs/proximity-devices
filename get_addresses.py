@@ -5,6 +5,7 @@ import csv
 import json
 import subprocess
 import requests
+import threading
 
 ap_file = 'access_points.csv'
 client_file = 'clients.csv'
@@ -24,11 +25,13 @@ def files_valid():
         return False
 
 def send_data(config, data):
+    #print(data)
     res = requests.post(config['db_host'] + '/scans', data={
         'device_id': config['device_id'],
         'api_key': config['api_key'],
-        'data': data
+        'data': open("scandata.json", 'rb')
     })
+    print(res)
 
 def enable_mon():
     p = subprocess.Popen(['airmon-ng', 'check', 'kill'])
@@ -37,13 +40,22 @@ def enable_mon():
     p.wait()
 
 def get_data():
-    p = subprocess.Popen(['timeout', '10', 'airodump-ng', '-w', airodump_file, '--output', 'csv', 'wlan0mon'])
-    p.wait()
+    try:
+        os.remove(airodump_file + '-01.csv')
+    except Exception:
+        pass
+    FNULL = open(os.devnull, 'w')
+    p = subprocess.Popen(["timeout", '10', 'airodump-ng', '-w', 'airodump', '--output-format', 'csv', 'wlan0mon'])
+    time.sleep(12)
+
 
 def process_data():
     with open(airodump_file + '-01.csv', 'r', encoding='utf8') as ad_file:
+     
         ad_file_str = ad_file.read()
-        [ap_str, client_str] = ad_file_str.split('\n\n')
+        file_split = ad_file_str.split('\n\n')
+        ap_str = file_split[0]
+        client_str = file_split[1]
 
         with open(ap_file, 'w', encoding='utf8') as f:
             f.write(ap_str.lstrip())
@@ -58,11 +70,11 @@ def process_data():
                 record = {}
                 for i, col in enumerate(row):
                     try:
-                        record[headers[i]] = int(row.strip())
+                        record[headers[i]] = int(col.strip())
                     except ValueError:
-                        record[headers[i]] = row.strip()
+                        record[headers[i]] = col.strip()
                         
-                 ap_list.append(record)
+                ap_list.append(record)
 
         clients_list = []
         with open(client_file, 'r', encoding='utf8') as f:
@@ -72,9 +84,9 @@ def process_data():
                 record = {}
                 for i, col in enumerate(row):
                     try:
-                        record[headers[i]] = int(row.strip())
+                        record[headers[i]] = int(col.strip())
                     except ValueError:
-                        record[headers[i]] = row.strip()
+                        record[headers[i]] = col.strip()
 
                 clients_list.append(record)
                 
@@ -83,13 +95,14 @@ def process_data():
     with open(data_file, 'w', encoding='utf-8') as f:
         f.write(json.dumps({'access_points': ap_list, 'clients': clients_list}))
 
-    conf = load_config()
 
-    if (files_valid()):
-        with open(data_file, 'r', encoding='utf-8') as f:
-            send_data(conf, json.load(f))
+conf = load_config()
+print(files_valid())
+if (files_valid()):
+    with open(data_file, 'r', encoding='utf-8') as f:
+        send_data(conf, json.load(f))
 
-    enable_mon()
-    get_data()
-    process_data()
+enable_mon()
+get_data()
+process_data()
 
