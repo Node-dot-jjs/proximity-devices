@@ -1,4 +1,4 @@
-# Contains Python scripts for the Raspberry Pi
+# Python scripts for the Raspberry Pi
 
 The Raspberry Pi Zero is configured as a headless platform, and runs Kali Linux. Using penetration testing tools, it gather information about MAC addresses in the surrounding area to determine how busy locations are. This information is then parsed before being sent to the back-end.
 
